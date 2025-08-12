@@ -1,110 +1,80 @@
 import os
 import time
+import logging
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.webdriver.chrome.options import Options
 
-LOGIN_PAGE = "https://admission.study-in-egypt.gov.eg/"
-EDIT_PAGE = "https://admission.study-in-egypt.gov.eg/services/admission/requests/591263/edit"
-DESIRED_TEXT = "اسم الرغبة اللي عايز تختارها هنا"
-WAIT_TIMEOUT = 15
+# إعدادات الـ Logging
+logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 
-USERNAME = os.environ.get("EGYPT_USER")
-PASSWORD = os.environ.get("EGYPT_PASS")
+# المتغيرات من بيئة Render
+EMAIL = os.getenv("EGYPT_USER")
+PASSWORD = os.getenv("EGYPT_PASS")
 
-if not USERNAME or not PASSWORD:
-    raise SystemExit("❌ لازم تضيف المتغيرات EGYPT_USER و EGYPT_PASS في بيئة التشغيل (Environment Variables).")
+# Selectors
+EMAIL_SELECTOR = "input[name='email']"
+PASS_SELECTOR = "input[name='password']"
+WISHLIST_SELECTOR = ".react-select__value-container.css-1hwfws3"
+DESIRED_TEXT = "تمريض القاهرة ساعات معتمدة ـ برنامج خاص بمصروفات"
+ADD_BUTTON_SELECTOR = "//button[contains(text(), 'إضافة')]"
 
-def start_browser():
-    options = webdriver.ChromeOptions()
-    options.add_argument("--headless=new")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    driver = webdriver.Chrome(options=options)
-    return driver
-
-def find_input_for_login(driver):
-    candidates = [
-        (By.CSS_SELECTOR, "input[type='email']"),
-        (By.CSS_SELECTOR, "input[name='email']"),
-        (By.CSS_SELECTOR, "input[id*='email']"),
-        (By.CSS_SELECTOR, "input[type='text']"),
-        (By.CSS_SELECTOR, "input[name='username']"),
-        (By.CSS_SELECTOR, "input[id*='username']"),
-    ]
-    pw_candidates = [
-        (By.CSS_SELECTOR, "input[type='password']"),
-        (By.CSS_SELECTOR, "input[name='password']"),
-        (By.CSS_SELECTOR, "input[id*='password']"),
-    ]
-    email_el = pw_el = None
-    for sel in candidates:
-        try:
-            email_el = WebDriverWait(driver, 3).until(EC.presence_of_element_located(sel))
-            break
-        except:
-            continue
-    for sel in pw_candidates:
-        try:
-            pw_el = WebDriverWait(driver, 3).until(EC.presence_of_element_located(sel))
-            break
-        except:
-            continue
-    return email_el, pw_el
-
-def click_by_text(driver, tag, text_substr):
-    xpath = f".//{tag}[contains(normalize-space(string(.)), '{text_substr}')]"
-    return driver.find_elements(By.XPATH, xpath)
+# رابط الصفحات
+LOGIN_URL = "https://admission.study-in-egypt.gov.eg/"
+TARGET_URL = "https://admission.study-in-egypt.gov.eg/services/admission/requests/591263/edit"
 
 def main():
-    driver = start_browser()
-    wait = WebDriverWait(driver, WAIT_TIMEOUT)
+    logging.info("بدء تشغيل السكربت...")
+
+    # إعداد المتصفح في وضع Headless
+    chrome_options = Options()
+    chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+
+    driver = webdriver.Chrome(options=chrome_options)
+
     try:
-        driver.get(LOGIN_PAGE)
+        # 1. فتح صفحة تسجيل الدخول
+        logging.info("فتح صفحة تسجيل الدخول...")
+        driver.get(LOGIN_URL)
 
-        email_el, pw_el = find_input_for_login(driver)
-        if email_el and pw_el:
-            email_el.clear()
-            email_el.send_keys(USERNAME)
-            pw_el.clear()
-            pw_el.send_keys(PASSWORD)
-            pw_el.send_keys(Keys.ENTER)
-        else:
-            print("⚠️ ما لقيت الحقول تلقائياً، لازم تحدد الـ selectors يدوياً.")
+        # إدخال البريد
+        logging.info("إدخال البريد...")
+        WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.CSS_SELECTOR, EMAIL_SELECTOR))).send_keys(EMAIL)
 
-        time.sleep(3)
-        driver.get(EDIT_PAGE)
+        # إدخال كلمة المرور
+        logging.info("إدخال كلمة المرور...")
+        WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.CSS_SELECTOR, PASS_SELECTOR))).send_keys(PASSWORD)
 
-        try:
-            candidates = click_by_text(driver, "button", "الرغبات") + click_by_text(driver, "a", "الرغبات")
-            if candidates:
-                candidates[0].click()
-        except TimeoutException:
-            print("⏳ ما ظهر عنصر الرغبات.")
+        # الضغط على زر الدخول
+        logging.info("تسجيل الدخول...")
+        driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
 
-        if DESIRED_TEXT.strip():
-            found = False
-            for tag in ("label", "li", "button", "a", "div", "span"):
-                els = click_by_text(driver, tag, DESIRED_TEXT)
-                if els:
-                    els[0].click()
-                    found = True
-                    break
-            if not found:
-                print(f"⚠️ ما لقيت الرغبة: {DESIRED_TEXT}")
+        # الانتقال مباشرة للصفحة المطلوبة
+        logging.info("الانتقال إلى صفحة الرغبات...")
+        driver.get(TARGET_URL)
 
-        cont = click_by_text(driver, "button", "استمر") + click_by_text(driver, "button", "استمرار")
-        if cont:
-            cont[0].click()
-            print("✅ تم الضغط على استمرار.")
-        else:
-            print("⚠️ ما لقيت زر استمرار.")
+        # فتح قائمة الرغبات
+        logging.info("فتح قائمة الرغبات...")
+        WebDriverWait(driver, 15).until(EC.element_to_be_clickable((By.CSS_SELECTOR, WISHLIST_SELECTOR))).click()
 
-        time.sleep(3)
+        # اختيار الرغبة
+        logging.info(f"اختيار الرغبة: {DESIRED_TEXT}")
+        option_xpath = f"//div[contains(text(), '{DESIRED_TEXT}')]"
+        WebDriverWait(driver, 15).until(EC.element_to_be_clickable((By.XPATH, option_xpath))).click()
+
+        # الضغط على زر إضافة
+        logging.info("الضغط على زر إضافة...")
+        WebDriverWait(driver, 15).until(EC.element_to_be_clickable((By.XPATH, ADD_BUTTON_SELECTOR))).click()
+
+        logging.info("تم تنفيذ جميع الخطوات بنجاح ✅")
+
+    except Exception as e:
+        logging.error(f"حدث خطأ: {e}")
 
     finally:
         driver.quit()
