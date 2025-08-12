@@ -56,6 +56,18 @@ def print_page_debug(driver):
             pass
     logging.info("==== نهاية النصوص ====")
 
+def print_input_fields(driver):
+    """يطبع الحقول القابلة للكتابة"""
+    inputs = driver.find_elements(By.XPATH, "//input[not(@type='hidden')]")
+    logging.info(f"تم العثور على {len(inputs)} حقل إدخال:")
+    for i, inp in enumerate(inputs, start=1):
+        try:
+            name = inp.get_attribute("name") or ""
+            placeholder = inp.get_attribute("placeholder") or ""
+            logging.info(f"- حقل {i}: name='{name}', placeholder='{placeholder}'")
+        except:
+            pass
+
 def main():
     logging.info("بدء تشغيل السكربت...")
 
@@ -74,6 +86,9 @@ def main():
         # محاولة الضغط على أي نافذة Cookies أو Pop-up
         click_if_exists(driver, "button.cookies-accept", By.CSS_SELECTOR)
         click_if_exists(driver, "//button[contains(text(),'موافق')]", By.XPATH)
+
+        # طباعة الحقول القابلة للكتابة
+        print_input_fields(driver)
 
         # التأكد من أن الصفحة ليست في iframe
         iframes = driver.find_elements(By.TAG_NAME, "iframe")
