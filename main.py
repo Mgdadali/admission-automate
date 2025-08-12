@@ -1,5 +1,4 @@
 import os
-import time
 import logging
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -7,10 +6,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 
-# إعدادات الـ Logging
+# إعداد الـ Logging
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 
-# المتغيرات من بيئة Render
+# بيانات الدخول من متغيرات البيئة
 EMAIL = os.getenv("EGYPT_USER")
 PASSWORD = os.getenv("EGYPT_PASS")
 
@@ -25,10 +24,10 @@ ADD_BUTTON_SELECTOR = "//button[contains(text(), 'إضافة')]"
 LOGIN_URL = "https://admission.study-in-egypt.gov.eg/"
 TARGET_URL = "https://admission.study-in-egypt.gov.eg/services/admission/requests/591263/edit"
 
-WAIT_TIME = 30  # زيادة مدة الانتظار
+WAIT_TIME = 30  # زيادة وقت الانتظار
 
 def save_debug_files(driver):
-    """حفظ Screenshot و HTML للصفحة في حالة حدوث خطأ"""
+    """حفظ Screenshot و HTML للصفحة"""
     try:
         driver.save_screenshot("error.png")
         with open("page.html", "w", encoding="utf-8") as f:
@@ -88,7 +87,16 @@ def main():
 
     except Exception as e:
         logging.error(f"حدث خطأ: {e}")
+        
+        # حفظ الملفات
         save_debug_files(driver)
+        
+        # طباعة HTML الصفحة في اللوج
+        page_html = driver.page_source
+        logging.info("==== بداية HTML الصفحة ====")
+        for i, line in enumerate(page_html.splitlines()[:200], start=1):
+            logging.info(f"{i:03}: {line}")
+        logging.info("==== نهاية HTML الصفحة ====")
 
     finally:
         driver.quit()
