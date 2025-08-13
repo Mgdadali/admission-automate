@@ -1,96 +1,65 @@
-import time
-import logging
-import undetected_chromedriver as uc
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-
-logging.basicConfig(level=logging.INFO, format='[INFO] %(message)s')
+from webdriver_manager.chrome import ChromeDriverManager
+import time
 
 EMAIL = "mgdadsubs@gmail.com"
 PASSWORD = "Test@12100"
-LOGIN_URL = "https://admission.study-in-egypt.gov.eg/login"
 TARGET_URL = "https://admission.study-in-egypt.gov.eg/services/admission/requests/591263/edit"
-WAIT_TIME = 15
+DESIRED_CHOICE = "تمريض القاهرة ساعات معتمدة ـ برنامج خاص بمصروفات"
 
 def main():
-    logging.info("تشغيل المتصفح في وضع Stealth...")
-    options = uc.ChromeOptions()
-    options.add_argument("--headless=new")
-    options.add_argument("--disable-blink-features=AutomationControlled")
+    options = webdriver.ChromeOptions()
+    options.add_argument("--headless=new")  # تشغيل بدون واجهة
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1920,1080")
 
-    driver = uc.Chrome(options=options)
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    wait = WebDriverWait(driver, 15)
 
     try:
-        logging.info("فتح صفحة تسجيل الدخول...")
-        driver.get(LOGIN_URL)
+        print("[INFO] فتح صفحة تسجيل الدخول...")
+        driver.get("https://admission.study-in-egypt.gov.eg/login")
 
         # إدخال البريد
-        logging.info("إدخال البريد...")
-        email_field = WebDriverWait(driver, WAIT_TIME).until(
-            EC.presence_of_element_located((By.NAME, "email"))
-        )
-        email_field.send_keys(EMAIL)
+        email_input = wait.until(EC.presence_of_element_located((By.NAME, "email")))
+        email_input.send_keys(EMAIL)
 
-        # إدخال الباسورد
-        logging.info("إدخال كلمة المرور...")
-        pass_field = driver.find_element(By.NAME, "password")
-        pass_field.send_keys(PASSWORD)
+        # إدخال كلمة المرور
+        password_input = driver.find_element(By.NAME, "password")
+        password_input.send_keys(PASSWORD)
 
-        # الضغط على زر تسجيل الدخول
-        logging.info("الضغط على زر تسجيل الدخول...")
-        login_button = driver.find_element(By.XPATH, "//button[contains(text(), 'تسجيل الدخول')]")
-        login_button.click()
+        # زر تسجيل الدخول
+        login_btn = driver.find_element(By.TAG_NAME, "button")
+        login_btn.click()
 
-        # الانتظار حتى الوصول للداشبورد
-        logging.info("الانتظار للوصول للداشبورد...")
-        WebDriverWait(driver, WAIT_TIME * 2).until(
-            EC.url_contains("/dashboard")
-        )
-
-        # الانتقال لصفحة الرغبات
-        logging.info("الانتقال لصفحة الرغبات...")
+        # الانتقال مباشرة للرابط
+        wait.until(EC.url_contains("/dashboard"))
+        print("[INFO] تسجيل الدخول ناجح، الانتقال للرابط المطلوب...")
         driver.get(TARGET_URL)
 
-        try:
-            WebDriverWait(driver, WAIT_TIME).until(
-                EC.url_contains("/edit")
-            )
-        except:
-            logging.warning("لم يتم الوصول من أول مرة... إعادة المحاولة")
-            driver.get(TARGET_URL)
-            WebDriverWait(driver, WAIT_TIME).until(EC.url_contains("/edit"))
+        # انتظار تحميل القائمة
+        choice_container = wait.until(EC.presence_of_element_located((By.CLASS_NAME, "react-select__value-container")))
+        choice_container.click()
 
-        logging.info("فتح قائمة الرغبات...")
-        dropdown = WebDriverWait(driver, WAIT_TIME).until(
-            EC.element_to_be_clickable((By.CLASS_NAME, "react-select__value-container"))
-        )
-        dropdown.click()
+        # اختيار الرغبة
+        choice = wait.until(EC.presence_of_element_located((By.XPATH, f"//div[text()='{DESIRED_CHOICE}']")))
+        choice.click()
 
-        logging.info("اختيار الرغبة المطلوبة...")
-        option = WebDriverWait(driver, WAIT_TIME).until(
-            EC.element_to_be_clickable((By.XPATH, "//div[contains(text(), 'تمريض القاهرة ساعات معتمدة ـ برنامج خاص بمصروفات')]"))
-        )
-        option.click()
-
-        logging.info("الضغط على زر إضافة...")
-        add_button = driver.find_element(
-            By.CSS_SELECTOR,
-            "#root > div > div > div.ContinueRequest_container__3pQh_ > div > form > div > section > div > div > section > div.FlexibleMulti_multiple-fields__2mn2G > div.undefined > div > form > div.FlexibleMulti_footer-container__1viNx > div > button:nth-child(1)"
-        )
+        # الضغط على زر إضافة
+        add_button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button:nth-child(1)")))
         add_button.click()
 
-        logging.info("تمت العملية بنجاح! 🎯")
+        print("[INFO] تم اختيار الرغبة وإضافتها بنجاح.")
 
     except Exception as e:
-        logging.error(f"حدث خطأ: {e}")
+        print("[ERROR]", e)
         driver.save_screenshot("error.png")
-        with open("page.html", "w", encoding="utf-8") as f:
-            f.write(driver.page_source)
-
     finally:
         driver.quit()
 
