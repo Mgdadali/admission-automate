@@ -25,7 +25,7 @@ def main():
     chrome_options.add_argument("--window-size=1920x1080")
     
     # استخدام WebDriverManager للحصول على الإصدار المتوافق مع المتصفح
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager(version="139.0.7258.154").install()), options=chrome_options)
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
 
     try:
         logging.info("فتح صفحة تسجيل الدخول...")
