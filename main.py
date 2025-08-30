@@ -24,8 +24,9 @@ def main():
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--window-size=1920x1080")
     
-    # استخدام WebDriverManager للحصول على الإصدار المتوافق مع المتصفح
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+    # تحديد الإصدار المتوافق من ChromeDriver يدويًا
+    chromedriver_path = ChromeDriverManager(version="139.0.7258.154").install()
+    driver = webdriver.Chrome(service=Service(chromedriver_path), options=chrome_options)
 
     try:
         logging.info("فتح صفحة تسجيل الدخول...")
