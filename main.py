@@ -1,51 +1,75 @@
+import logging
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
-import time
 
-# إعدادات المتصفح
-options = webdriver.ChromeOptions()
-options.add_argument("--headless")  # تشغيل المتصفح في الخلفية (بدون واجهة رسومية)
-driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+# بيانات الدخول
+LOGIN_URL = "https://admission.study-in-egypt.gov.eg/login"
+TARGET_URL = "https://admission.study-in-egypt.gov.eg/services/admission/requests/591263/edit"
+EMAIL = "mgdadsubs@gmail.com"
+PASSWORD = "Test@12100"
+WAIT_TIME = 20
 
-# فتح صفحة تسجيل الدخول
-driver.get("https://admission.study-in-egypt.gov.eg/login")
+logging.basicConfig(level=logging.INFO, format='[INFO] %(message)s')
 
-# الانتظار حتى تحميل الصفحة
-wait = WebDriverWait(driver, 10)
+def main():
+    chrome_options = Options()
+    chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115 Safari/537.36")
 
-try:
-    # تحديد حقل البريد الإلكتروني باستخدام CSS Selector أو XPath
-    email_field = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ".Label_required-label__12wpY")))
-    
-    # إدخال البريد الإلكتروني
-    email_field.send_keys("example@example.com")
+    driver = webdriver.Chrome(options=chrome_options)
 
-    # تحديد حقل كلمة المرور باستخدام CSS Selector أو XPath
-    password_field = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ".Label_required-label__12wpY")))  # تعديل حسب العنصر الصحيح
-    
-    # إدخال كلمة المرور
-    password_field.send_keys("your_password_here")
+    try:
+        logging.info("فتح صفحة تسجيل الدخول...")
+        driver.get(LOGIN_URL)
 
-    # تحديد زر تسجيل الدخول
-    login_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[@type='submit']")))  # تعديل حسب مكان الزر
-    
-    # الضغط على زر تسجيل الدخول
-    login_button.click()
+        # انتظار ظهور حقل البريد الإلكتروني
+        logging.info("إدخال البريد...")
+        email_input = WebDriverWait(driver, WAIT_TIME).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, '[data-id="backEnd-backEnd-email"]'))
+        )
+        email_input.clear()
+        email_input.send_keys(EMAIL)
 
-    # الانتظار قليلاً للتأكد من أنه تم تسجيل الدخول
-    time.sleep(5)
+        # انتظار ظهور حقل كلمة المرور
+        logging.info("إدخال كلمة المرور...")
+        password_input = WebDriverWait(driver, WAIT_TIME).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, '[data-id="backEnd-backEnd-password"]'))
+        )
+        password_input.clear()
+        password_input.send_keys(PASSWORD)
 
-    # بعد تسجيل الدخول، الانتقال إلى الرابط المحدد
-    driver.get("https://admission.study-in-egypt.gov.eg/services/admission/requests/591263/edit")
-    time.sleep(5)  # الانتظار حتى تحميل الصفحة
+        # الضغط على زر تسجيل الدخول
+        logging.info("تسجيل الدخول...")
+        login_button = WebDriverWait(driver, WAIT_TIME).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, 'button[type="submit"]'))
+        )
+        login_button.click()
 
-    print("تم تسجيل الدخول والانتقال إلى الصفحة المطلوبة.")
-except Exception as e:
-    print(f"حدث خطأ: {e}")
-finally:
-    # إغلاق المتصفح بعد التنفيذ
-    driver.quit()
+        # الانتقال إلى صفحة الرغبات
+        logging.info("الانتقال إلى صفحة الرغبات...")
+        WebDriverWait(driver, WAIT_TIME).until(EC.url_contains("/dashboard"))
+        driver.get(TARGET_URL)
+
+        logging.info("التحقق من الوصول إلى صفحة الرغبات...")
+        WebDriverWait(driver, WAIT_TIME).until(EC.url_contains("/edit"))
+
+        # هنا نضيف اختيار الرغبة وزر الإضافة لاحقًا
+        logging.info("فتح قائمة الرغبات...")
+        
+    except Exception as e:
+        logging.error(f"حدث خطأ: {e}")
+        with open("page.html", "w", encoding="utf-8") as f:
+            f.write(driver.page_source)
+        driver.save_screenshot("error.png")
+    finally:
+        driver.quit()
+
+if __name__ == "__main__":
+    main()
