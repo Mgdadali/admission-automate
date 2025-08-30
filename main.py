@@ -1,11 +1,11 @@
 import logging
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from webdriver_manager.chrome import ChromeDriverManager
 
 # بيانات الدخول
 LOGIN_URL = "https://admission.study-in-egypt.gov.eg/login"
@@ -17,15 +17,17 @@ WAIT_TIME = 20
 logging.basicConfig(level=logging.INFO, format='[INFO] %(message)s')
 
 def main():
+    # إعدادات Chrome
     chrome_options = Options()
-    chrome_options.add_argument("--headless")  # وضع التشغيل بدون واجهة مستخدم
+    chrome_options.add_argument("--headless")  # تشغيل بدون واجهة رسومية
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--window-size=1920x1080")
-    
-    # تحديد الإصدار المتوافق من ChromeDriver يدويًا
-    chromedriver_path = ChromeDriverManager(version="139.0.7258.154").install()
+    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114 Safari/537.36")
+
+    # تثبيت وتشغيل ChromeDriver 114
+    chromedriver_path = ChromeDriverManager(version="114.0.5735.90").install()
+
     driver = webdriver.Chrome(service=Service(chromedriver_path), options=chrome_options)
 
     try:
@@ -65,7 +67,7 @@ def main():
 
         # هنا نضيف اختيار الرغبة وزر الإضافة لاحقًا
         logging.info("فتح قائمة الرغبات...")
-        
+
     except Exception as e:
         logging.error(f"حدث خطأ: {e}")
         with open("page.html", "w", encoding="utf-8") as f:
