@@ -1,12 +1,11 @@
 import logging
-import os
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
 
 # بيانات الدخول
 LOGIN_URL = "https://admission.study-in-egypt.gov.eg/login"
@@ -18,19 +17,15 @@ WAIT_TIME = 20
 logging.basicConfig(level=logging.INFO, format='[INFO] %(message)s')
 
 def main():
-    # تحديد المنفذ
-    port = int(os.environ.get('PORT', 8000))
-
     chrome_options = Options()
     chrome_options.add_argument("--headless")  # وضع التشغيل بدون واجهة مستخدم
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--window-size=1920x1080")
-    chrome_options.add_argument(f"--remote-debugging-port={port}")  # تعيين المنفذ
-    chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115 Safari/537.36")
-
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+    
+    # استخدام WebDriverManager للحصول على الإصدار المتوافق مع المتصفح
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager(version="139.0.7258.154").install()), options=chrome_options)
 
     try:
         logging.info("فتح صفحة تسجيل الدخول...")
